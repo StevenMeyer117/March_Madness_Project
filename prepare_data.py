@@ -2,6 +2,8 @@ import pandas as pd
 
 # Load cbb2_ranked.csv into a DataFrame
 df = pd.read_csv("cbb2_ranked.csv")
+# Fill missing rankings with a very low ranking
+df["RK"] = df["RK"].fillna(df["RK"].max() + 1)
 
 # Create Win Percentage
 df["WP"] = (df["W"] / df["G"]).round(3)
