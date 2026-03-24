@@ -1,10 +1,12 @@
 import pandas as pd
 import joblib
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
 
 # Load the prepared dataset
 df = pd.read_csv("cbb2_prepared.csv")
+df["NET_EFF"] = df["ADJOE"] - df["ADJDE"]
 
 # Fill missing RK values
 df["RK"] = df["RK"].fillna(df["RK"].max() + 1)
@@ -17,6 +19,7 @@ features = [
     "WP",
     "ADJOE",
     "ADJDE",
+    "NET_EFF",
     "BARTHAG",
     "TOR",
     "TORD",
@@ -41,17 +44,20 @@ print(df[features].isna().sum())
 train = df[df["YEAR"] <= 2023]
 test = df[df["YEAR"] == 2024]
 
-X_train = train[features]
-y_train = train[target]
+scaler = StandardScaler()
 
-X_test = test[features]
+X_train = scaler.fit_transform(train[features])
+X_test = scaler.transform(test[features])
+
+joblib.dump(scaler, "scaler.pkl")
+
+y_train = train[target]
 y_test = test[target]
 
-# Create Random Forest Model
-model = RandomForestClassifier(
-    n_estimators=500,
-    max_depth=10,
-    random_state=42
+# Create Logistic Regression model
+model = LogisticRegression(
+    max_iter=1000,
+    class_weight="balanced"
 )
 
 # Train the model
@@ -85,12 +91,3 @@ print("\nTeam strenghts exported to team_strenghts_2024.csv")
 
 print("\nTop Predicted Teams (2024):")
 print(top_teams[["TEAM", "TEAM_STRENGTH"]].head(10))
-
-# Features importance
-importance = pd.DataFrame({
-    "Feature": features,
-    "Importance": model.feature_importances_
-}).sort_values("Importance", ascending=False)
-
-print("\nFeature Importance:")
-print(importance)
