@@ -13,18 +13,14 @@ st.set_page_config(
 )
 
 # ==============================
-# TITLE
+# UI SECTION (Teammate 1)
 # ==============================
 
 st.title("🏀 March Madness Predictor")
 
 st.write(
-    "Run Monte Carlo simulations to predict NCAA Tournament champion probabilities."
+    "Run Monte Carlo simulations to estimate NCAA Tournament champion probabilities."
 )
-
-# ==============================
-# INPUT
-# ==============================
 
 st.subheader("Simulation Settings")
 
@@ -36,20 +32,21 @@ num_sims = st.slider(
     step=100
 )
 
+run_button = st.button("Run Simulation")
+
 # ==============================
-# RUN BUTTON
+# DATA SECTION (DO NOT TOUCH)
 # ==============================
 
-if st.button("Run Simulation"):
+if run_button:
 
     with st.spinner("Running simulations..."):
-
         results = run_simulation(num_sims)
 
     st.success("Simulation complete!")
 
     # ==============================
-    # RESULTS
+    # VISUALIZATION SECTION (Teammate 2)
     # ==============================
 
     st.subheader("🏆 Champion Probabilities")
@@ -63,4 +60,5 @@ if st.button("Run Simulation"):
     df = df.sort_values("Probability", ascending=False)
 
     st.dataframe(df)
+
     st.bar_chart(df.set_index("Team"))
