@@ -13,6 +13,7 @@ st.set_page_config(
 )
 
 # ==============================
+<<<<<<< HEAD
 # UI SECTION
 # ==============================
 
@@ -25,6 +26,17 @@ st.markdown(
 )
 
 # Input Controls
+=======
+# UI SECTION (Teammate 1)
+# ==============================
+
+st.title("🏀 March Madness Predictor")
+
+st.write(
+    "Run Monte Carlo simulations to estimate NCAA Tournament champion probabilities."
+)
+
+>>>>>>> origin/main
 st.subheader("Simulation Settings")
 
 num_sims = st.slider(
@@ -35,28 +47,49 @@ num_sims = st.slider(
     step=100
 )
 
+<<<<<<< HEAD
 # Run Button
 run_button = st.button("Run Simulation")
 
 # ==============================
 # OUTPUT SECTION
+=======
+run_button = st.button("Run Simulation")
+
+# ==============================
+# DATA SECTION (DO NOT TOUCH)
+>>>>>>> origin/main
 # ==============================
 
 if run_button:
 
+<<<<<<< HEAD
     st.write(f"Running {num_sims} simulations...")
 
     with st.spinner("Simulating tournament..."):
+=======
+    with st.spinner("Running simulations..."):
+>>>>>>> origin/main
         results = run_simulation(num_sims)
 
     st.success("Simulation complete!")
 
+<<<<<<< HEAD
     # Convert results to DataFrame
+=======
+    # ==============================
+    # VISUALIZATION SECTION (Teammate 2)
+    # ==============================
+
+    st.subheader("🏆 Champion Probabilities")
+
+>>>>>>> origin/main
     df = pd.DataFrame(
         list(results.items()),
         columns=["Team", "Probability"]
     )
 
+<<<<<<< HEAD
     # Format probabilities
     df["Probability"] = df["Probability"] * 100
     df = df.sort_values("Probability", ascending=False)
@@ -70,4 +103,11 @@ if run_button:
     st.dataframe(df)
 
     # Bar chart
+=======
+    df["Probability"] = df["Probability"] * 100
+    df = df.sort_values("Probability", ascending=False)
+
+    st.dataframe(df)
+
+>>>>>>> origin/main
     st.bar_chart(df.set_index("Team"))
