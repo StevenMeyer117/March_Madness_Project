@@ -41,13 +41,9 @@ run_button = st.button("Run Simulation")
 if run_button:
 
     with st.spinner("Running simulations..."):
-        results = run_simulation(num_sims)
+        results, sample_bracket = run_simulation(num_sims)
 
     st.success("Simulation complete!")
-
-    # ==============================
-    # VISUALIZATION SECTION (Teammate 2)
-    # ==============================
 
     st.subheader("🏆 Champion Probabilities")
 
@@ -57,8 +53,17 @@ if run_button:
     )
 
     df["Probability"] = df["Probability"] * 100
-    df = df.sort_values("Probability", ascending=False)
+    df = df.sort_values("Probability", ascending=False).reset_index(drop=True)
 
     st.dataframe(df)
 
-    st.bar_chart(df.set_index("Team"))
+    st.bar_chart(
+        df,
+        x="Team",
+        y="Probability",
+        horizontal=True,
+        sort=False
+    )
+
+    st.subheader("🧾 Sample Bracket Data")
+    st.json(sample_bracket)

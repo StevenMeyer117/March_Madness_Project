@@ -49,15 +49,27 @@ def compute_strengths(df):
 # ==============================
 
 def create_bracket(df):
+    available_teams = set(df["TEAM"].tolist())
 
-    top_64 = df["TEAM"].head(64).tolist()
+    missing = []
+    for _, team1, team2 in REAL_FIRST_ROUND_MATCHUPS:
+        if team1 not in available_teams:
+            missing.append(team1)
+        if team2 not in available_teams:
+            missing.append(team2)
 
-    matchups = []
+    if missing:
+        raise ValueError(
+            "These bracket teams were not found in cbb26_prepared.csv: "
+            + ", ".join(sorted(set(missing)))
+        )
 
-    for i in range(32):
-        matchups.append((top_64[i], top_64[63 - i]))
+    bracket = pd.DataFrame(
+        REAL_FIRST_ROUND_MATCHUPS,
+        columns=["REGION", "TEAM1", "TEAM2"]
+    )
 
-    return pd.DataFrame(matchups, columns=["TEAM1", "TEAM2"])
+    return bracket
 
 
 # ==============================
@@ -85,23 +97,113 @@ def predict_winner(team1, team2, df):
 # Simulate tournament
 # ==============================
 
-def simulate_tournament(df, bracket):
+REAL_FIRST_ROUND_MATCHUPS = [
+    # East
+    ("East", "Duke", "Siena"),
+    ("East", "Ohio St.", "TCU"),
+    ("East", "Louisville", "South Florida"),
+    ("East", "Michigan St.", "North Dakota St."),
+    ("East", "St. John's", "Northern Iowa"),
+    ("East", "Kansas", "Cal Baptist"),
+    ("East", "UCLA", "UCF"),
+    ("East", "Connecticut", "Furman"),
 
-    winners = []
+    # West
+    ("West", "Arizona", "LIU"),
+    ("West", "Villanova", "Utah St."),
+    ("West", "Wisconsin", "High Point"),
+    ("West", "Arkansas", "Hawaii"),
+    ("West", "BYU", "Texas"),
+    ("West", "Gonzaga", "Kennesaw St."),
+    ("West", "Purdue", "Queens"),
+    ("West", "Miami FL", "Missouri"),
 
-    for _, row in bracket.iterrows():
-        winners.append(predict_winner(row["TEAM1"], row["TEAM2"], df))
+    # Midwest
+    ("Midwest", "Michigan", "Howard"),
+    ("Midwest", "Georgia", "Saint Louis"),
+    ("Midwest", "Kentucky", "Santa Clara"),
+    ("Midwest", "Iowa St.", "Tennessee St."),
+    ("Midwest", "Texas Tech", "Akron"),
+    ("Midwest", "Alabama", "Hofstra"),
+    ("Midwest", "Virginia", "Wright St."),
+    ("Midwest", "Tennessee", "Miami OH"),
 
-    current = winners
+    # South
+    ("South", "Florida", "Prairie View A&M"),
+    ("South", "Clemson", "Iowa"),
+    ("South", "Nebraska", "Troy"),
+    ("South", "Vanderbilt", "McNeese St."),
+    ("South", "North Carolina", "VCU"),
+    ("South", "Illinois", "Penn"),
+    ("South", "Saint Mary's", "Texas A&M"),
+    ("South", "Houston", "Idaho"),
+]
 
-    while len(current) > 1:
-        next_round = []
-        for i in range(0, len(current), 2):
-            next_round.append(predict_winner(current[i], current[i+1], df))
-        current = next_round
+def simulate_tournament(df, bracket, return_path=False):
+    current_games = bracket[["TEAM1", "TEAM2"]].values.tolist()
 
-    return current[0]
+    round_names = [
+        "Round of 64",
+        "Round of 32",
+        "Sweet 16",
+        "Elite 8",
+        "Final 4",
+        "Championship"
+    ]
 
+    bracket_path = {}
+    round_idx = 0
+
+    while len(current_games) > 0:
+        winners = []
+        game_results = []
+
+        for team1, team2 in current_games:
+            winner = predict_winner(team1, team2, df)
+            winners.append(winner)
+
+            game_results.append({
+                "team1": team1,
+                "team2": team2,
+                "winner": winner
+            })
+
+        round_name = round_names[round_idx]
+        bracket_path[round_name] = game_results
+
+        if len(winners) == 1:
+            if return_path:
+                return winners[0], bracket_path
+            return winners[0]
+
+        current_games = [
+            [winners[i], winners[i + 1]]
+            for i in range(0, len(winners), 2)
+        ]
+        round_idx += 1
+
+
+def run_simulation(num_simulations=1000):
+    df = load_data()
+    df = compute_strengths(df)
+    bracket = create_bracket(df)
+
+    counts = Counter()
+    sample_bracket = None
+
+    for sim in range(num_simulations):
+        champ, bracket_path = simulate_tournament(df, bracket, return_path=True)
+        counts[champ] += 1
+
+        if sim == 0:
+            sample_bracket = bracket_path
+
+    results = {
+        team: count / num_simulations
+        for team, count in counts.most_common(10)
+    }
+
+    return results, sample_bracket, bracket
 
 # ==============================
 # MAIN FUNCTION (this is key)
@@ -114,14 +216,35 @@ def run_simulation(num_simulations=1000):
     bracket = create_bracket(df)
 
     counts = Counter()
+    sample_bracket = None
 
-    for _ in range(num_simulations):
-        champ = simulate_tournament(df, bracket)
+    for sim in range(num_simulations):
+        champ, bracket_path = simulate_tournament(df, bracket, return_bracket=True)
         counts[champ] += 1
+
+        if sim == 0:
+            sample_bracket = bracket_path
 
     results = {
         team: count / num_simulations
         for team, count in counts.most_common(10)
     }
 
-    return results
+    return results, sample_bracket
+if __name__ == "__main__":
+    num_simulations = 100
+
+    results, sample_bracket, first_round_bracket = run_simulation(num_simulations)
+
+    print("\nFIRST ROUND MATCHUPS")
+    print(first_round_bracket.to_string(index=False))
+
+    print("\nTOP CHAMPION PROBABILITIES")
+    for team, prob in results.items():
+        print(f"{team}: {prob:.2%}")
+
+    print("\nSAMPLE BRACKET PATH")
+    for round_name, games in sample_bracket.items():
+        print(f"\n{round_name}")
+        for game in games:
+            print(f"{game['team1']} vs {game['team2']} -> {game['winner']}")
