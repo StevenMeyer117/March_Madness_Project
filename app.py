@@ -9,34 +9,23 @@ from simulation import run_simulation
 st.set_page_config(
     page_title="March Madness Predictor",
     page_icon="🏀",
-    layout="centered"
+    layout="wide"
 )
 
 # ==============================
-<<<<<<< HEAD
-# UI SECTION
+# TITLE + DESCRIPTION
 # ==============================
 
-# Title
 st.title("🏀 March Madness Predictor")
 
-# Description
 st.markdown(
-    "Run Monte Carlo simulations to predict which teams have the highest chance of winning the NCAA March Madness tournament."
+    "Run Monte Carlo simulations using a machine learning model to estimate each team's probability of winning the NCAA Tournament."
 )
 
-# Input Controls
-=======
-# UI SECTION (Teammate 1)
+# ==============================
+# INPUT CONTROLS
 # ==============================
 
-st.title("🏀 March Madness Predictor")
-
-st.write(
-    "Run Monte Carlo simulations to estimate NCAA Tournament champion probabilities."
-)
-
->>>>>>> origin/main
 st.subheader("Simulation Settings")
 
 num_sims = st.slider(
@@ -47,67 +36,57 @@ num_sims = st.slider(
     step=100
 )
 
-<<<<<<< HEAD
-# Run Button
 run_button = st.button("Run Simulation")
 
 # ==============================
-# OUTPUT SECTION
-=======
-run_button = st.button("Run Simulation")
-
-# ==============================
-# DATA SECTION (DO NOT TOUCH)
->>>>>>> origin/main
+# RUN SIMULATION
 # ==============================
 
 if run_button:
 
-<<<<<<< HEAD
     st.write(f"Running {num_sims} simulations...")
 
     with st.spinner("Simulating tournament..."):
-=======
-    with st.spinner("Running simulations..."):
->>>>>>> origin/main
-        results = run_simulation(num_sims)
+        champion_probs, bracket = run_simulation(num_sims)
 
     st.success("Simulation complete!")
 
-<<<<<<< HEAD
-    # Convert results to DataFrame
-=======
     # ==============================
-    # VISUALIZATION SECTION (Teammate 2)
+    # PROBABILITY RESULTS
     # ==============================
 
-    st.subheader("🏆 Champion Probabilities")
-
->>>>>>> origin/main
     df = pd.DataFrame(
-        list(results.items()),
+        list(champion_probs.items()),
         columns=["Team", "Probability"]
     )
 
-<<<<<<< HEAD
-    # Format probabilities
     df["Probability"] = df["Probability"] * 100
     df = df.sort_values("Probability", ascending=False)
 
-    # ⭐ NEW: Show most likely champion
+    # Top team
     st.subheader("🥇 Most Likely Champion")
-    st.write(f"{df.iloc[0]['Team']} ({df.iloc[0]['Probability']:.2f}%)")
+    st.success(f"{df.iloc[0]['Team']} ({df.iloc[0]['Probability']:.2f}%)")
 
-    # Display results
+    # Table
     st.subheader("🏆 Champion Probabilities")
     st.dataframe(df)
 
-    # Bar chart
-=======
-    df["Probability"] = df["Probability"] * 100
-    df = df.sort_values("Probability", ascending=False)
-
-    st.dataframe(df)
-
->>>>>>> origin/main
+    # Chart
     st.bar_chart(df.set_index("Team"))
+
+    # ==============================
+    # BRACKET DISPLAY (UPDATED)
+    # ==============================
+
+    st.subheader("🏀 Tournament Bracket")
+
+    # Loop through all rounds/regions cleanly
+    for round_name, games in bracket.items():
+        st.markdown(f"### {round_name}")
+        for game in games:
+            st.write(game)
+
+    # Final Champion Highlight
+    if "Champion" in bracket:
+        st.markdown("---")
+        st.success(f"🏆 Tournament Winner: {bracket['Champion'][0]}")
