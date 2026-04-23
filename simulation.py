@@ -205,32 +205,7 @@ def run_simulation(num_simulations=1000):
 
     return results, sample_bracket, bracket
 
-# ==============================
-# MAIN FUNCTION (this is key)
-# ==============================
 
-def run_simulation(num_simulations=1000):
-
-    df = load_data()
-    df = compute_strengths(df)
-    bracket = create_bracket(df)
-
-    counts = Counter()
-    sample_bracket = None
-
-    for sim in range(num_simulations):
-        champ, bracket_path = simulate_tournament(df, bracket, return_bracket=True)
-        counts[champ] += 1
-
-        if sim == 0:
-            sample_bracket = bracket_path
-
-    results = {
-        team: count / num_simulations
-        for team, count in counts.most_common(10)
-    }
-
-    return results, sample_bracket
 if __name__ == "__main__":
     num_simulations = 100
 
