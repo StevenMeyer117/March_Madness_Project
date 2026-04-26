@@ -1,29 +1,48 @@
 import pandas as pd
 import joblib
 import numpy as np
-import math
 import random
-from collections import Counter
 
 # ==============================
-# Load model + scaler ONCE
+# LOAD MODEL + SCALER
 # ==============================
 
 model = joblib.load("march_madness_model.pkl")
 scaler = joblib.load("scaler.pkl")
 
+
 # ==============================
-# Load + prepare data
+# LOAD DATA
 # ==============================
 
 def load_data():
     df = pd.read_csv("cbb26_prepared.csv")
     df["NET_EFF"] = df["ADJOE"] - df["ADJDE"]
+
+    # Normalize team names once
+    df["TEAM_CLEAN"] = df["TEAM"].apply(normalize_name)
+
     return df
 
 
 # ==============================
-# Compute strengths
+# NORMALIZE NAMES
+# ==============================
+
+def normalize_name(name):
+    if name is None:
+        return None
+    return (
+        name.strip()
+        .lower()
+        .replace(".", "")
+        .replace("'", "")
+        .replace("&", "and")
+    )
+
+
+# ==============================
+# COMPUTE TEAM STRENGTH
 # ==============================
 
 def compute_strengths(df):
@@ -37,91 +56,165 @@ def compute_strengths(df):
     X_scaled = scaler.transform(df[features])
 
     probs = model.predict_proba(X_scaled)[:, 1]
+
+    # log-odds for better separation
     strength = np.log(probs / (1 - probs))
 
     df["TEAM_STRENGTH"] = strength
 
-    return df.sort_values("TEAM_STRENGTH", ascending=False)
+    return df
 
 
 # ==============================
-# Create bracket (top 64 teams)
-# ==============================
-
-def create_bracket(df):
-
-    top_64 = df["TEAM"].head(64).tolist()
-
-    matchups = []
-
-    for i in range(32):
-        matchups.append((top_64[i], top_64[63 - i]))
-
-    return pd.DataFrame(matchups, columns=["TEAM1", "TEAM2"])
-
-
-# ==============================
-# Predict winner
+# PREDICT GAME
 # ==============================
 
 def predict_winner(team1, team2, df):
 
-    t1 = df.loc[df["TEAM"] == team1]
-    t2 = df.loc[df["TEAM"] == team2]
-
-    if t1.empty or t2.empty:
+    if team1 is None or team2 is None:
         return None
 
-    s1 = t1["TEAM_STRENGTH"].values[0]
-    s2 = t2["TEAM_STRENGTH"].values[0]
+    t1 = df.loc[df["TEAM_CLEAN"] == normalize_name(team1)]
+    t2 = df.loc[df["TEAM_CLEAN"] == normalize_name(team2)]
 
-    diff = s1 - s2
-    prob = 1 / (1 + math.exp(-0.5 * diff))
+    # fallback fuzzy match
+    if t1.empty:
+        t1 = df[df["TEAM_CLEAN"].str.contains(normalize_name(team1).split()[0])]
+        if t1.empty:
+            return None
+        t1 = t1.iloc[[0]]
 
-    return team1 if random.random() < prob else team2
+    if t2.empty:
+        t2 = df[df["TEAM_CLEAN"].str.contains(normalize_name(team2).split()[0])]
+        if t2.empty:
+            return None
+        t2 = t2.iloc[[0]]
+
+    p1 = t1["TEAM_STRENGTH"].values[0]
+    p2 = t2["TEAM_STRENGTH"].values[0]
+
+    prob_team1 = p1 / (p1 + p2)
+
+    # RETURN CLEAN DATASET NAME (important)
+    return t1["TEAM"].values[0] if random.random() < prob_team1 else t2["TEAM"].values[0]
 
 
 # ==============================
-# Simulate tournament
+# SIMULATE FULL TOURNAMENT
 # ==============================
 
 def simulate_tournament(df, bracket):
 
-    winners = []
+    rounds = {}
+
+    # ==============================
+    # ROUND OF 64 (REAL MATCHUPS)
+    # ==============================
+
+    r64_matchups = []
+    r64_winners = []
 
     for _, row in bracket.iterrows():
-        winners.append(predict_winner(row["TEAM1"], row["TEAM2"], df))
+        t1 = row["TEAM1"]
+        t2 = row["TEAM2"]
 
-    current = winners
+        r64_matchups.append((t1, t2))
 
-    while len(current) > 1:
-        next_round = []
-        for i in range(0, len(current), 2):
-            next_round.append(predict_winner(current[i], current[i+1], df))
-        current = next_round
+        w = predict_winner(t1, t2, df)
+        if w is None:
+            return None
 
-    return current[0]
+        r64_winners.append(w)
+
+    rounds["R64_matchups"] = r64_matchups
+
+    # ==============================
+    # GENERIC ROUND BUILDER
+    # ==============================
+
+    def play_round(prev):
+        matchups = []
+        winners = []
+
+        for i in range(0, len(prev), 2):
+            t1 = prev[i]
+            t2 = prev[i + 1]
+
+            matchups.append((t1, t2))
+
+            w = predict_winner(t1, t2, df)
+            if w is None:
+                return None, None
+
+            winners.append(w)
+
+        return matchups, winners
+
+    # ==============================
+    # BUILD TOURNAMENT
+    # ==============================
+
+    r32_matchups, r32_winners = play_round(r64_winners)
+    if r32_matchups is None:
+        return None
+    rounds["R32_matchups"] = r32_matchups
+
+    s16_matchups, s16_winners = play_round(r32_winners)
+    if s16_matchups is None:
+        return None
+    rounds["S16_matchups"] = s16_matchups
+
+    e8_matchups, e8_winners = play_round(s16_winners)
+    if e8_matchups is None:
+        return None
+    rounds["E8_matchups"] = e8_matchups
+
+    f4_matchups, f4_winners = play_round(e8_winners)
+    if f4_matchups is None:
+        return None
+    rounds["F4_matchups"] = f4_matchups
+
+    champ_matchup, champ = play_round(f4_winners)
+    if champ_matchup is None:
+        return None
+
+    rounds["CHAMP_matchup"] = champ_matchup
+    rounds["CHAMP"] = champ[0]
+
+    return rounds
 
 
 # ==============================
-# MAIN FUNCTION (this is key)
+# MONTE CARLO SIMULATION
 # ==============================
 
-def run_simulation(num_simulations=1000):
+def run_simulation(bracket_file, num_simulations=1000):
 
     df = load_data()
     df = compute_strengths(df)
-    bracket = create_bracket(df)
 
-    counts = Counter()
+    bracket = pd.read_csv(bracket_file)
 
-    for _ in range(num_simulations):
-        champ = simulate_tournament(df, bracket)
-        counts[champ] += 1
+    from collections import Counter
+    champion_counts = Counter()
 
-    results = {
+    sample_bracket = None
+
+    for i in range(num_simulations):
+
+        results = simulate_tournament(df, bracket)
+        if results is None:
+            continue
+
+        champion_counts[results["CHAMP"]] += 1
+
+        # Save LAST simulation for display
+        if i == num_simulations - 1:
+            sample_bracket = results
+
+    probs = {
         team: count / num_simulations
-        for team, count in counts.most_common(10)
+        for team, count in champion_counts.most_common(10)
     }
 
-    return results
+    return probs, sample_bracket
