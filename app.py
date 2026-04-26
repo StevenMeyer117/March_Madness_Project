@@ -24,6 +24,7 @@ if st.button("Run Simulation"):
 
     prob_df = pd.DataFrame(list(probs.items()), columns=["Team", "Probability"])
     prob_df["Probability"] = (prob_df["Probability"] * 100).round(2)
+    prob_df.rename(columns={"Probability": "Win %"}, inplace=True)
 
     st.dataframe(prob_df)
     st.bar_chart(prob_df.set_index("Team"))
