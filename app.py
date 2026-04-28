@@ -1,7 +1,15 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import matplotlib.pyplot as plt
+import numpy as np
 from simulation import run_simulation
+
+@st.cache_data
+def load_cbb():
+    return pd.read_csv("cbb2_prepared.csv")
+
+cbb = load_cbb()
 
 st.set_page_config(page_title="March Madness Predictor", layout="wide")
 
@@ -10,16 +18,33 @@ st.write("Simulate the NCAA Tournament and view predicted brackets.")
 
 num_sims = st.slider("Number of Simulations", 100, 5000, 1000, 100)
 
-if st.button("Run Simulation"):
+if "probs" not in st.session_state:
+    st.session_state.probs = None
 
+if "sample_bracket" not in st.session_state:
+    st.session_state.sample_bracket = None
+
+if "r64_win_probs" not in st.session_state:
+    st.session_state.r64_win_probs = None
+    
+if st.button("Run Simulation"):
     with st.spinner("Running simulations..."):
         probs, sample_bracket, r64_win_probs = run_simulation("bracket_2025_round1.csv", num_sims)
+
+    st.session_state.probs = probs
+    st.session_state.sample_bracket = sample_bracket
+    st.session_state.r64_win_probs = r64_win_probs
 
     st.success("Simulation complete!")
 
     # ==============================
     # PROBABILITIES
     # ==============================
+if st.session_state.probs is not None:
+    probs = st.session_state.probs
+    sample_bracket = st.session_state.sample_bracket
+    r64_win_probs = st.session_state.r64_win_probs
+    
     st.subheader("🏆 Champion Probabilities")
 
     prob_df = pd.DataFrame(list(probs.items()), columns=["Team", "Probability"])
@@ -109,6 +134,52 @@ if st.button("Run Simulation"):
     )
 
     st.altair_chart(upset_chart, use_container_width=True)
+
+    def show_postseason_relationships(cbb):
+        st.subheader("📈 Team Metrics vs Postseason Success")
+
+        if "POSTSEASON_NUM" not in cbb.columns:
+            st.warning("POSTSEASON_NUM is not in this dataset, so this graph cannot be created.")
+            return
+
+        top_relationships = ["SEED", "BARTHAG", "WAB", "ADJOE", "ADJDE"]
+
+        selected_metric = st.selectbox(
+            "Choose a metric to compare",
+            top_relationships
+        )
+
+        plot_df = cbb[[selected_metric, "POSTSEASON_NUM"]].copy()
+
+        plot_df[selected_metric] = pd.to_numeric(plot_df[selected_metric], errors="coerce")
+        plot_df["POSTSEASON_NUM"] = pd.to_numeric(plot_df["POSTSEASON_NUM"], errors="coerce")
+
+        plot_df = plot_df.replace([np.inf, -np.inf], np.nan).dropna()
+
+        if len(plot_df) < 2:
+            st.warning("Not enough valid data points to plot this relationship.")
+            return
+
+        fig, ax = plt.subplots(figsize=(5, 3))
+
+        x = plot_df[selected_metric]
+        y = plot_df["POSTSEASON_NUM"]
+
+        ax.scatter(x, y, alpha=0.35)
+
+        if x.nunique() > 1:
+            m, b = np.polyfit(x, y, 1)
+            x_line = np.array([x.min(), x.max()])
+            y_line = m * x_line + b
+            ax.plot(x_line, y_line, linewidth=2)
+
+        ax.set_title(f"{selected_metric} vs Postseason Success")
+        ax.set_xlabel(selected_metric)
+        ax.set_ylabel("Round Eliminated")
+
+        fig.tight_layout()
+        st.pyplot(fig, width="content")
+    show_postseason_relationships(cbb)
     # ==============================
     # DISPLAY FUNCTION
     # ==============================
