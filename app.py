@@ -9,6 +9,75 @@ st.write("Simulate the NCAA Tournament and view predicted brackets.")
 
 num_sims = st.slider("Number of Simulations", 100, 5000, 1000, 100)
 
+# ==============================
+# BRACKET DRAW FUNCTION
+# ==============================
+
+def draw_bracket(bracket):
+    st.subheader("📊 Predicted Tournament Flow")
+
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+    # Round of 64
+    with col1:
+        st.markdown("### Round of 64")
+        for t1, t2 in bracket["R64_matchups"]:
+            st.write(t1)
+            st.write(t2)
+            st.write("---")
+
+    # Round of 32
+    with col2:
+        st.markdown("### Round of 32")
+        for t1, t2 in bracket["R32_matchups"]:
+            st.write(t1)
+            st.write(t2)
+            st.write("---")
+
+    # Sweet 16
+    with col3:
+        st.markdown("### Sweet 16")
+        for t1, t2 in bracket["S16_matchups"]:
+            st.write(t1)
+            st.write(t2)
+            st.write("---")
+
+    # Elite 8
+    with col4:
+        st.markdown("### Elite 8")
+        for t1, t2 in bracket["E8_matchups"]:
+            st.write(t1)
+            st.write(t2)
+            st.write("---")
+
+    # Final Four
+    with col5:
+        st.markdown("### Final Four")
+        for t1, t2 in bracket["F4_matchups"]:
+            st.write(t1)
+            st.write(t2)
+            st.write("---")
+
+    # Championship (SAFE VERSION)
+    with col6:
+        st.markdown("### Championship")
+
+        champ_matchup = bracket.get("CHAMP_matchup", [])
+
+        if isinstance(champ_matchup, (list, tuple)) and len(champ_matchup) == 2:
+            t1, t2 = champ_matchup
+            st.write(t1)
+            st.write(t2)
+        else:
+            st.write("Final matchup not available")
+
+        st.write("---")
+        st.success(f"🏆 {bracket['CHAMP']}")
+
+# ==============================
+# MAIN BUTTON
+# ==============================
+
 if st.button("Run Simulation"):
 
     with st.spinner("Running simulations..."):
@@ -30,29 +99,14 @@ if st.button("Run Simulation"):
     st.bar_chart(prob_df.set_index("Team"))
 
     # ==============================
-    # DISPLAY FUNCTION
-    # ==============================
-
-    def display_matchups(title, matchups):
-        st.markdown(f"### {title}")
-        for t1, t2 in matchups:
-            col1, col2, col3 = st.columns([3,1,3])
-            col1.write(t1)
-            col2.write("vs")
-            col3.write(t2)
-
-    # ==============================
     # BRACKET DISPLAY
     # ==============================
 
-    st.subheader("📊 Predicted Tournament Flow")
+    draw_bracket(bracket)
 
-    display_matchups("Round of 64 (Actual)", bracket["R64_matchups"])
-    display_matchups("Round of 32", bracket["R32_matchups"])
-    display_matchups("Sweet 16", bracket["S16_matchups"])
-    display_matchups("Elite 8", bracket["E8_matchups"])
-    display_matchups("Final Four", bracket["F4_matchups"])
-    display_matchups("Championship", bracket["CHAMP_matchup"])
+    # ==============================
+    # FINAL CHAMPION
+    # ==============================
 
     st.markdown("## 🏆 Champion")
     st.success(bracket["CHAMP"])
