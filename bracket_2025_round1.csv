@@ -1,36 +1,36 @@
-TEAM1,TEAM2
-Duke,Siena
-Ohio St,TCU
-St. John's,Northern Iowa
-Kansas,CA Baptist
-Louisville,South Florida
-Michigan St,North Dakota St
-UCLA,UCF
-Connecticut,Furman
+REGION,TEAM1,TEAM2
+East,Duke,Siena
+East,Ohio St,TCU
+East,St. John's,Northern Iowa
+East,Kansas,CA Baptist
+East,Louisville,South Florida
+East,Michigan St,North Dakota St
+East,UCLA,UCF
+East,Connecticut,Furman
 
-Arizona,Long Island
-Villanova,Utah St
-Wisconsin,High Point
-Arkansas,Hawaii
-BYU,Texas
-Gonzaga,Kennesaw St
-Miami (FL),Missouri
-Purdue,Queens (N.C.)
+West,Arizona,Long Island
+West,Villanova,Utah St
+West,Wisconsin,High Point
+West,Arkansas,Hawaii
+West,BYU,Texas
+West,Gonzaga,Kennesaw St
+West,Miami (FL),Missouri
+West,Purdue,Queens (N.C.)
 
-Florida,Prairie View
-Clemson,Iowa
-Vanderbilt,McNeese
-Nebraska,Troy
-North Carolina,VCU
-Illinois,Penn
-Saint Mary's,Texas A&M
-Houston,Idaho
+South,Florida,Prairie View
+South,Clemson,Iowa
+South,Vanderbilt,McNeese
+South,Nebraska,Troy
+South,North Carolina,VCU
+South,Illinois,Penn
+South,Saint Mary's,Texas A&M
+South,Houston,Idaho
 
-Michigan,Howard
-Georgia,Saint Louis
-Texas Tech,Akron
-Alabama,Hofstra
-Tennessee,Miami (Ohio)
-Virginia,Wright St
-Kentucky,Santa Clara
-Iowa St,Tennessee St
+Midwest,Michigan,Howard
+Midwest,Georgia,Saint Louis
+Midwest,Texas Tech,Akron
+Midwest,Alabama,Hofstra
+Midwest,Tennessee,Miami (Ohio)
+Midwest,Virginia,Wright St
+Midwest,Kentucky,Santa Clara
+Midwest,Iowa St,Tennessee St
