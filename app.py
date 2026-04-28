@@ -40,6 +40,90 @@ if st.button("Run Simulation"):
     # ==============================
     # PROBABILITIES
     # ==============================
+def build_regional_bracket(sample_bracket):
+    # Assumes bracket order stays consistent throughout:
+    # East, West, Midwest, South
+    region_order = ["East", "West", "South", "Midwest"]
+
+    final_four_teams = []
+    for t1, t2 in sample_bracket["F4_matchups"]:
+        final_four_teams.extend([t1, t2])
+
+    regions = {}
+
+    for i, region in enumerate(region_order):
+        regions[region] = {
+            "R64_matchups": sample_bracket["R64_matchups"][i * 8:(i + 1) * 8],
+            "R32_matchups": sample_bracket["R32_matchups"][i * 4:(i + 1) * 4],
+            "S16_matchups": sample_bracket["S16_matchups"][i * 2:(i + 1) * 2],
+            "E8_matchups": sample_bracket["E8_matchups"][i:i + 1],
+            "REGION_CHAMP": final_four_teams[i] if i < len(final_four_teams) else None,
+        }
+
+    return {
+        "regions": regions,
+        "Final Four_matchups": sample_bracket["F4_matchups"],
+        "Championship_matchup": sample_bracket["CHAMP_matchup"],
+        "CHAMP": sample_bracket["CHAMP"],
+    }
+
+
+def render_region(region_name, region_data):
+    st.markdown(f"### {region_name}")
+
+    rounds = [
+        ("R64_matchups", "Round of 64"),
+        ("R32_matchups", "Round of 32"),
+        ("S16_matchups", "Sweet 16"),
+        ("E8_matchups", "Elite 8"),
+    ]
+
+    cols = st.columns(4)
+
+    for col, (round_key, round_label) in zip(cols, rounds):
+        with col:
+            st.markdown(f"**{round_label}**")
+
+            for t1, t2 in region_data[round_key]:
+                with st.container(border=True):
+                    st.markdown(
+                        f"""
+**{t1}**  
+vs  
+**{t2}**
+"""
+                    )
+
+    st.success(f"🏆 {region_name} Champion: {region_data['REGION_CHAMP']}")
+
+
+def render_final_four(bracket):
+    st.markdown("## 🔥 Final Four")
+
+    for t1, t2 in bracket["Final Four_matchups"]:
+        with st.container(border=True):
+            st.markdown(
+                f"""
+**{t1}**  
+vs  
+**{t2}**
+"""
+            )
+
+    st.markdown("## 🏀 Championship")
+
+    for t1, t2 in bracket["Championship_matchup"]:
+        with st.container(border=True):
+            st.markdown(
+                f"""
+**{t1}**  
+vs  
+**{t2}**
+"""
+            )
+
+    st.success(f"🏆 National Champion: {bracket['CHAMP']}")
+
 if st.session_state.probs is not None:
     probs = st.session_state.probs
     sample_bracket = st.session_state.sample_bracket
@@ -196,14 +280,17 @@ if st.session_state.probs is not None:
     # BRACKET DISPLAY
     # ==============================
 
-    st.subheader("📊 Predicted Tournament Flow")
+    st.markdown("---")
+    st.markdown("## 📊 Regional Brackets")
 
-    display_matchups("Round of 64 (Actual)", sample_bracket["R64_matchups"])
-    display_matchups("Round of 32", sample_bracket["R32_matchups"])
-    display_matchups("Sweet 16", sample_bracket["S16_matchups"])
-    display_matchups("Elite 8", sample_bracket["E8_matchups"])
-    display_matchups("Final Four", sample_bracket["F4_matchups"])
-    display_matchups("Championship", sample_bracket["CHAMP_matchup"])
+    bracket = build_regional_bracket(sample_bracket)
 
-    st.markdown("## 🏆 Champion")
-    st.success(sample_bracket["CHAMP"])
+    regions = ["East", "West", "Midwest", "South"]
+    tabs = st.tabs(regions)
+
+    for tab, region in zip(tabs, regions):
+        with tab:
+            render_region(region, bracket["regions"][region])
+
+    st.markdown("---")
+    render_final_four(bracket)
