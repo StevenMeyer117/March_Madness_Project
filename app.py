@@ -3,7 +3,7 @@ import pandas as pd
 from simulation import run_simulation
 
 # ==============================
-# PAGE CONFIG
+# CONFIG
 # ==============================
 
 st.set_page_config(
@@ -12,81 +12,57 @@ st.set_page_config(
     layout="wide"
 )
 
-# ==============================
-# TITLE + DESCRIPTION
-# ==============================
-
 st.title("🏀 March Madness Predictor")
 
-st.markdown(
-    "Run Monte Carlo simulations using a machine learning model to estimate each team's probability of winning the NCAA Tournament."
-)
+st.markdown("Monte Carlo NCAA tournament simulation using ML.")
 
 # ==============================
-# INPUT CONTROLS
+# INPUT
 # ==============================
 
-st.subheader("Simulation Settings")
+num_sims = st.slider("Simulations", 100, 5000, 1000, 100)
 
-num_sims = st.slider(
-    "Number of Simulations",
-    min_value=100,
-    max_value=5000,
-    value=1000,
-    step=100
-)
-
-run_button = st.button("Run Simulation")
+run = st.button("Run Simulation")
 
 # ==============================
-# RUN SIMULATION
+# RUN
 # ==============================
 
-if run_button:
+if run:
 
-    st.write(f"Running {num_sims} simulations...")
-
-    with st.spinner("Simulating tournament..."):
-        champion_probs, bracket = run_simulation(num_sims)
+    probs, bracket = run_simulation(num_sims)
 
     st.success("Simulation complete!")
 
-    # ==============================
-    # PROBABILITY RESULTS
-    # ==============================
+    # PROBABILITIES
+    df = pd.DataFrame(list(probs.items()), columns=["Team", "Prob"])
+    df["Prob"] *= 100
+    df = df.sort_values("Prob", ascending=False)
 
-    df = pd.DataFrame(
-        list(champion_probs.items()),
-        columns=["Team", "Probability"]
-    )
-
-    df["Probability"] = df["Probability"] * 100
-    df = df.sort_values("Probability", ascending=False)
-
-    # Top team
-    st.subheader("🥇 Most Likely Champion")
-    st.success(f"{df.iloc[0]['Team']} ({df.iloc[0]['Probability']:.2f}%)")
-
-    # Table
-    st.subheader("🏆 Champion Probabilities")
+    st.subheader("🏆 Champion Odds")
     st.dataframe(df)
-
-    # Chart
     st.bar_chart(df.set_index("Team"))
 
-    # ==============================
-    # BRACKET DISPLAY (UPDATED)
-    # ==============================
-
+    # BRACKET
     st.subheader("🏀 Tournament Bracket")
 
-    # Loop through all rounds/regions cleanly
     for round_name, games in bracket.items():
-        st.markdown(f"### {round_name}")
-        for game in games:
-            st.write(game)
 
-    # Final Champion Highlight
-    if "Champion" in bracket:
-        st.markdown("---")
-        st.success(f"🏆 Tournament Winner: {bracket['Champion'][0]}")
+        st.markdown(f"### {round_name}")
+
+        for game in games:
+
+            st.markdown(
+                f"""
+                <div style="
+                    padding:10px;
+                    margin:6px 0;
+                    border-radius:10px;
+                    background:#f4f4f4;
+                    color:#000;
+                ">
+                    {game}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )

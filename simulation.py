@@ -1,187 +1,246 @@
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+import joblib
 
 # ==============================
-# LOAD + TRAIN MODEL
+# LOAD MODEL + SCALER
 # ==============================
 
-df = pd.read_csv("cbb2_prepared.csv")
-
-df["RK"] = df["RK"].fillna(df["RK"].max() + 1)
-df = df[df["POSTSEASON_NUM"] > 0]
-
-features = [
-    "ADJOE",
-    "ADJDE",
-    "BARTHAG",
-    "TOR",
-    "ORB",
-    "DRB",
-    "FTR",
-    "RK"
-]
-
-df["TARGET"] = (df["BARTHAG"] > df["BARTHAG"].median()).astype(int)
-
-model = LogisticRegression(max_iter=1000)
-model.fit(df[features], df["TARGET"])
+model = joblib.load("march_madness_model.pkl")
+scaler = joblib.load("scaler.pkl")
 
 # ==============================
-# GAME SIMULATION
+# LOAD + PREP DATA
 # ==============================
 
-def simulate_game(teamA, teamB):
+def normalize_name(name):
+    if name is None:
+        return ""
+    return (
+        str(name)
+        .strip()
+        .lower()
+        .replace(".", "")
+        .replace("'", "")
+        .replace("&", "and")
+    )
 
-    diff = np.array([
-        teamA["ADJOE"] - teamB["ADJOE"],
-        teamA["ADJDE"] - teamB["ADJDE"],
-        teamA["BARTHAG"] - teamB["BARTHAG"],
-        teamA["TOR"] - teamB["TOR"],
-        teamA["ORB"] - teamB["ORB"],
-        teamA["DRB"] - teamB["DRB"],
-        teamA["FTR"] - teamB["FTR"],
-        teamA["RK"] - teamB["RK"]
-    ]).reshape(1, -1)
 
-    prob = model.predict_proba(diff)[0][1]
+def load_data():
+    df = pd.read_csv("cbb26_prepared.csv")
 
-    return teamA if np.random.rand() < prob else teamB
+    df["NET_EFF"] = df["ADJOE"] - df["ADJDE"]
+    df["TEAM_CLEAN"] = df["TEAM"].apply(normalize_name)
+
+    df = df.dropna(subset=["BARTHAG", "TEAM"])
+    return df
+
 
 # ==============================
-# CREATE SEEDED REGION
+# REAL NCAA SEEDING SYSTEM
 # ==============================
 
-def create_region(teams):
+def create_seeds(df):
 
-    # Use SEED if available, else RK
-    if "SEED" in teams.columns:
-        teams = teams.sort_values("SEED")
-    else:
-        teams = teams.sort_values("RK")
+    df = df.copy()
 
-    teams = teams.reset_index(drop=True)
+    df = df.sort_values("BARTHAG", ascending=False).reset_index(drop=True)
 
-    # Standard NCAA matchups
-    pairs = [
-        (0,15), (7,8), (4,11), (3,12),
-        (5,10), (2,13), (6,9), (1,14)
+    df["SEED_GLOBAL"] = range(1, len(df) + 1)
+
+    return df
+
+
+def build_regions(df):
+
+    df = create_seeds(df)
+
+    chunk = len(df) // 4
+
+    return {
+        "East": df.iloc[0:chunk],
+        "West": df.iloc[chunk:2*chunk],
+        "South": df.iloc[2*chunk:3*chunk],
+        "Midwest": df.iloc[3*chunk:]
+    }
+
+
+def create_region_matchups(region_df):
+
+    region_df = region_df.sort_values("SEED_GLOBAL").reset_index(drop=True)
+
+    teams = [
+        {
+            "seed": row["SEED_GLOBAL"],
+            "team": row["TEAM"]
+        }
+        for _, row in region_df.iterrows()
     ]
 
+    n = len(teams)
+
     matchups = []
-    for a,b in pairs:
-        matchups.append((teams.iloc[a], teams.iloc[b]))
+
+    for i in range(n // 2):
+        matchups.append((teams[i], teams[n - 1 - i]))
 
     return matchups
 
-# ==============================
-# PLAY ROUND
-# ==============================
-
-def play_round(matchups, round_name, bracket, region=None):
-
-    winners = []
-    games = []
-
-    for teamA, teamB in matchups:
-
-        winner = simulate_game(teamA, teamB)
-
-        label = f"{teamA['TEAM']} vs {teamB['TEAM']} → {winner['TEAM']}"
-        games.append(label)
-
-        winners.append(winner)
-
-    key = f"{region} - {round_name}" if region else round_name
-    bracket[key] = games
-
-    return winners
 
 # ==============================
-# SIMULATE REGION
+# SAFE PREDICTION
 # ==============================
 
-def simulate_region(teams, region_name, bracket):
+def predict_game(teamA, teamB, df):
 
-    r64 = play_round(create_region(teams), "Round of 64", bracket, region_name)
+    matchA = df[df["TEAM_CLEAN"] == normalize_name(teamA["team"])]
+    matchB = df[df["TEAM_CLEAN"] == normalize_name(teamB["team"])]
 
-    def to_matchups(t):
-        return [(t[i], t[i+1]) for i in range(0, len(t), 2)]
+    if matchA.empty or matchB.empty:
+        return teamA if np.random.rand() > 0.5 else teamB
 
-    r32 = play_round(to_matchups(r64), "Round of 32", bracket, region_name)
-    s16 = play_round(to_matchups(r32), "Sweet 16", bracket, region_name)
-    e8 = play_round(to_matchups(s16), "Elite 8", bracket, region_name)
+    rowA = matchA.iloc[0]
+    rowB = matchB.iloc[0]
 
-    # Region winner
-    return e8[0]
+    featuresA = np.array([[rowA["WP"], rowA["ADJOE"], rowA["ADJDE"],
+                           rowA["NET_EFF"], rowA["BARTHAG"], rowA["TOR"],
+                           rowA["TORD"], rowA["ORB"], rowA["DRB"],
+                           rowA["FTR"], rowA["FTRD"], rowA["2P_O"],
+                           rowA["2P_D"], rowA["3P_O"], rowA["3P_D"],
+                           rowA["RK"]]])
+
+    featuresB = np.array([[rowB["WP"], rowB["ADJOE"], rowB["ADJDE"],
+                           rowB["NET_EFF"], rowB["BARTHAG"], rowB["TOR"],
+                           rowB["TORD"], rowB["ORB"], rowB["DRB"],
+                           rowB["FTR"], rowB["FTRD"], rowB["2P_O"],
+                           rowB["2P_D"], rowB["3P_O"], rowB["3P_D"],
+                           rowB["RK"]]])
+
+    diff = featuresA - featuresB
+    prob = model.predict_proba(scaler.transform(diff))[0][1]
+
+    return teamA if np.random.rand() < prob else teamB
+
 
 # ==============================
-# SINGLE BRACKET SIMULATION
+# SAFE PAIRING
 # ==============================
 
-def simulate_single_bracket(teams):
+def pair_teams(teams):
 
+    if len(teams) % 2 != 0:
+        teams = teams[:-1]
+
+    return [(teams[i], teams[i+1]) for i in range(0, len(teams), 2)]
+
+
+# ==============================
+# REGION SIMULATION
+# ==============================
+
+def simulate_region(matchups, df, region_name):
+
+    rounds = ["Round of 64", "Round of 32", "Sweet 16", "Elite 8"]
     bracket = {}
 
-    # Split into 4 regions
-    teams = teams.sort_values("RK").reset_index(drop=True)
+    current = matchups
+    winner = None
 
-    regions = {
-        "East": teams.iloc[0:16],
-        "West": teams.iloc[16:32],
-        "South": teams.iloc[32:48],
-        "Midwest": teams.iloc[48:64]
-    }
+    for round_name in rounds:
 
-    region_winners = {}
+        next_round = []
+        games = []
 
-    for name, region_teams in regions.items():
-        winner = simulate_region(region_teams, name, bracket)
-        region_winners[name] = winner
+        for teamA, teamB in current:
 
-    # Final Four
-    ff_matchups = [
-        (region_winners["East"], region_winners["West"]),
-        (region_winners["South"], region_winners["Midwest"])
-    ]
+            win = predict_game(teamA, teamB, df)
 
-    f4 = play_round(ff_matchups, "Final Four", bracket)
+            games.append(f"{teamA['seed']} {teamA['team']} vs {teamB['seed']} {teamB['team']} → {win['team']}")
 
-    # Championship
-    champ_match = [(f4[0], f4[1])]
-    final = play_round(champ_match, "Championship", bracket)
+            next_round.append(win)
 
-    champion = final[0]["TEAM"]
-    bracket["Champion"] = [champion]
+        bracket[f"{region_name} - {round_name}"] = games
 
-    return bracket, champion
+        if len(next_round) == 1:
+            winner = next_round[0]
+            break
+
+        current = pair_teams(next_round)
+
+    return bracket, winner
+
 
 # ==============================
-# MAIN FUNCTION
+# FULL BRACKET SIMULATION
+# ==============================
+
+def simulate_single_bracket(df):
+
+    regions = build_regions(df)
+
+    bracket = {}
+    final_four = []
+
+    for region_name, region_df in regions.items():
+
+        matchups = create_region_matchups(region_df)
+
+        region_bracket, winner = simulate_region(matchups, df, region_name)
+
+        bracket.update(region_bracket)
+        final_four.append(winner)
+
+    ff_games = []
+    winners = []
+
+    for i in range(0, len(final_four), 2):
+
+        if i + 1 >= len(final_four):
+            break
+
+        teamA = final_four[i]
+        teamB = final_four[i + 1]
+
+        win = predict_game(teamA, teamB, df)
+
+        ff_games.append(f"{teamA['team']} vs {teamB['team']} → {win['team']}")
+        winners.append(win)
+
+    bracket["Final Four"] = ff_games
+
+    if len(winners) >= 2:
+
+        champ = predict_game(winners[0], winners[1], df)
+
+        bracket["Championship"] = [
+            f"{winners[0]['team']} vs {winners[1]['team']} → {champ['team']}"
+        ]
+
+        bracket["Champion"] = [champ["team"]]
+
+    return bracket
+
+
+# ==============================
+# MONTE CARLO
 # ==============================
 
 def run_simulation(num_simulations=1000):
 
-    teams_2024 = df[df["YEAR"] == 2024].copy()
+    df = load_data()
 
-    # Ensure we only take 64 teams
-    teams_2024 = teams_2024.sort_values("RK").head(64)
+    counts = {}
+    last = None
 
-    champion_counts = {}
-    sample_bracket = None
+    for _ in range(num_simulations):
 
-    for i in range(num_simulations):
+        bracket = simulate_single_bracket(df)
 
-        bracket, champion = simulate_single_bracket(teams_2024)
+        champ = bracket["Champion"][0]
+        counts[champ] = counts.get(champ, 0) + 1
 
-        champion_counts[champion] = champion_counts.get(champion, 0) + 1
+        last = bracket
 
-        if i == 0:
-            sample_bracket = bracket
+    probs = {k: v / num_simulations for k, v in counts.items()}
 
-    champion_probabilities = {
-        team: count / num_simulations
-        for team, count in champion_counts.items()
-    }
-
-    return champion_probabilities, sample_bracket
+    return probs, last
