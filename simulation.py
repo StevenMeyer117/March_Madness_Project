@@ -127,6 +127,7 @@ def simulate_tournament(df, bracket):
         r64_winners.append(w)
 
     rounds["R64_matchups"] = r64_matchups
+    rounds["R64_winners"] = r64_winners
 
     # ==============================
     # GENERIC ROUND BUILDER
@@ -197,6 +198,7 @@ def run_simulation(bracket_file, num_simulations=1000):
 
     from collections import Counter
     champion_counts = Counter()
+    r64_win_counts = Counter()
 
     sample_bracket = None
 
@@ -208,6 +210,9 @@ def run_simulation(bracket_file, num_simulations=1000):
 
         champion_counts[results["CHAMP"]] += 1
 
+        for team in results["R64_winners"]:
+            r64_win_counts[team] += 1
+
         # Save LAST simulation for display
         if i == num_simulations - 1:
             sample_bracket = results
@@ -217,4 +222,9 @@ def run_simulation(bracket_file, num_simulations=1000):
         for team, count in champion_counts.most_common(10)
     }
 
-    return probs, sample_bracket
+    r64_win_probs = {
+        team: count / num_simulations
+        for team, count in r64_win_counts.items()
+    }
+
+    return probs, sample_bracket, r64_win_probs
