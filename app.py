@@ -53,11 +53,6 @@ if st.button("Run Simulation"):
         st.error(f"Unexpected error: {e}")
         st.stop()
 
-    st.session_state.probs = probs
-    st.session_state.sample_bracket = sample_bracket
-    st.session_state.r64_win_probs = r64_win_probs
-
-    st.success("Simulation complete!")
 
     # ==============================
     # PROBABILITIES
@@ -197,7 +192,6 @@ if st.session_state.probs is not None:
         "High Point",
         "Hawaii",
         "Texas",
-        "Kennesaw St.",
         "Queens",
         "Howard",
         "Miami OH",
