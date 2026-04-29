@@ -1,17 +1,36 @@
-TEAM1,TEAM2
-Connecticut,Stetson
-Florida Atlantic,Northwestern
-San Diego St.,UAB
-Auburn,Yale
-BYU,Duquesne
-Illinois,Morehead St.
-Washington St.,Drake
-Iowa St.,South Dakota St.
-North Carolina,Wagner
-Mississippi St.,Michigan St.
-Saint Mary's,Grand Canyon
-Alabama,College of Charleston
-New Mexico,Clemson
-Baylor,Colgate
-Dayton,Nevada
-Arizona,Long Beach St.
+REGION,TEAM1,TEAM2
+East,Duke,Siena
+East,Ohio St,TCU
+East,St. John's,Northern Iowa
+East,Kansas,CA Baptist
+East,Louisville,South Florida
+East,Michigan St,North Dakota St
+East,UCLA,UCF
+East,Connecticut,Furman
+
+West,Arizona,Long Island
+West,Villanova,Utah St
+West,Wisconsin,High Point
+West,Arkansas,Hawaii
+West,BYU,Texas
+West,Gonzaga,Kennesaw St
+West,Miami (FL),Missouri
+West,Purdue,Queens (N.C.)
+
+South,Florida,Prairie View
+South,Clemson,Iowa
+South,Vanderbilt,McNeese
+South,Nebraska,Troy
+South,North Carolina,VCU
+South,Illinois,Penn
+South,Saint Mary's,Texas A&M
+South,Houston,Idaho
+
+Midwest,Michigan,Howard
+Midwest,Georgia,Saint Louis
+Midwest,Texas Tech,Akron
+Midwest,Alabama,Hofstra
+Midwest,Tennessee,Miami (Ohio)
+Midwest,Virginia,Wright St
+Midwest,Kentucky,Santa Clara
+Midwest,Iowa St,Tennessee St
