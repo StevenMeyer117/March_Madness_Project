@@ -23,6 +23,10 @@ cbb = load_cbb()
 
 st.set_page_config(page_title="March Madness Predictor", layout="wide")
 
+# ==============================
+# HEADER
+# ==============================
+
 st.title("🏀 March Madness Predictor")
 st.write("Simulate the NCAA Tournament and view predicted brackets.")
 
@@ -76,28 +80,15 @@ TEAM_NAME_ALIASES = {
 }
 
 TEAM_NAME_ALIASES.update({
-    "ohio st": "ohio state",
-    "ohio st.": "ohio state",
     "st john's": "st johns",
     "st johns": "st johns",
-    "ca baptist": "cal baptist",
-    "north dakota st": "north dakota state",
-    "north dakota st.": "north dakota state",
-    "utah st": "utah state",
-    "utah st.": "utah state",
     "mcneese": "mcneese",
     "mcneese st": "mcneese",
     "mcneese st.": "mcneese",
     "queens (n c)": "queens",
     "queens (n. c.)": "queens",
-    "queens nc": "queens",
     "texas aandm": "texas am",
-    "texas a&m": "texas am",
     "miami (ohio)": "miami ohio",
-    "wright st": "wright state",
-    "wright st.": "wright state",
-    "tennessee st": "tennessee state",
-    "tennessee st.": "tennessee state",
     "iowa st": "iowa state",
     "iowa st.": "iowa state",
     "louisville": "louisville",
@@ -180,17 +171,30 @@ def render_team(team, winners):
 # ==============================
 
 if st.button("Run Simulation"):
-    with st.spinner("Running simulations..."):
-        probs, sample_bracket, r64_win_probs = run_simulation(
-            "bracket_2025_round1.csv",
-            num_sims
-        )
+    try:
+        with st.spinner("Running simulations..."):
+            probs, sample_bracket, r64_win_probs = run_simulation(
+                "bracket_2025_round1.csv",
+                num_sims
+            )
 
-    st.session_state.probs = probs
-    st.session_state.sample_bracket = sample_bracket
-    st.session_state.r64_win_probs = r64_win_probs
+        if sample_bracket is None:
+            st.error("Simulation failed. Check team names or dataset.")
+            st.stop()
 
-    st.success("Simulation complete!")
+        st.session_state.probs = probs
+        st.session_state.sample_bracket = sample_bracket
+        st.session_state.r64_win_probs = r64_win_probs
+
+        st.success("Simulation complete!")
+
+    except FileNotFoundError:
+        st.error("Missing required data file.")
+        st.stop()
+
+    except Exception as e:
+        st.error(f"Unexpected error: {e}")
+        st.stop()
 
 
 # ==============================

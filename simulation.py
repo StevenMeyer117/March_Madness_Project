@@ -2,6 +2,9 @@ import pandas as pd
 import joblib
 import numpy as np
 import random
+from models import Team
+from collections import Counter
+
 
 # ==============================
 # LOAD MODEL + SCALER
@@ -32,6 +35,7 @@ def load_data():
 def normalize_name(name):
     if name is None:
         return None
+
     return (
         name.strip()
         .lower()
@@ -46,11 +50,10 @@ def normalize_name(name):
 # ==============================
 
 def compute_strengths(df):
-
     features = [
-        "WP","ADJOE","ADJDE","NET_EFF","BARTHAG",
-        "TOR","TORD","ORB","DRB","FTR","FTRD",
-        "2P_O","2P_D","3P_O","3P_D","RK"
+        "WP", "ADJOE", "ADJDE", "NET_EFF", "BARTHAG",
+        "TOR", "TORD", "ORB", "DRB", "FTR", "FTRD",
+        "2P_O", "2P_D", "3P_O", "3P_D", "RK",
     ]
 
     X_scaled = scaler.transform(df[features])
@@ -70,7 +73,6 @@ def compute_strengths(df):
 # ==============================
 
 def predict_winner(team1, team2, df):
-
     if team1 is None or team2 is None:
         return None
 
@@ -79,13 +81,21 @@ def predict_winner(team1, team2, df):
 
     # fallback fuzzy match
     if t1.empty:
-        t1 = df[df["TEAM_CLEAN"].str.contains(normalize_name(team1).split()[0])]
+        t1 = df[
+            df["TEAM_CLEAN"].str.contains(
+                normalize_name(team1).split()[0]
+            )
+        ]
         if t1.empty:
             return None
         t1 = t1.iloc[[0]]
 
     if t2.empty:
-        t2 = df[df["TEAM_CLEAN"].str.contains(normalize_name(team2).split()[0])]
+        t2 = df[
+            df["TEAM_CLEAN"].str.contains(
+                normalize_name(team2).split()[0]
+            )
+        ]
         if t2.empty:
             return None
         t2 = t2.iloc[[0]]
@@ -93,10 +103,15 @@ def predict_winner(team1, team2, df):
     p1 = t1["TEAM_STRENGTH"].values[0]
     p2 = t2["TEAM_STRENGTH"].values[0]
 
-    prob_team1 = p1 / (p1 + p2)
+    team1_obj = Team(t1["TEAM"].values[0], p1)
+    team2_obj = Team(t2["TEAM"].values[0], p2)
+
+    prob_team1 = team1_obj.win_probability(team2_obj)
 
     # RETURN CLEAN DATASET NAME (important)
-    return t1["TEAM"].values[0] if random.random() < prob_team1 else t2["TEAM"].values[0]
+    if random.random() < prob_team1:
+        return t1["TEAM"].values[0]
+    return t2["TEAM"].values[0]
 
 
 # ==============================
@@ -104,7 +119,6 @@ def predict_winner(team1, team2, df):
 # ==============================
 
 def simulate_tournament(df, bracket):
-
     rounds = {}
 
     # ==============================
@@ -190,20 +204,17 @@ def simulate_tournament(df, bracket):
 # ==============================
 
 def run_simulation(bracket_file, num_simulations=1000):
-
     df = load_data()
     df = compute_strengths(df)
 
     bracket = pd.read_csv(bracket_file)
 
-    from collections import Counter
     champion_counts = Counter()
     r64_win_counts = Counter()
 
     sample_bracket = None
 
     for i in range(num_simulations):
-
         results = simulate_tournament(df, bracket)
         if results is None:
             continue
