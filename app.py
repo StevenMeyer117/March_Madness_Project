@@ -75,6 +75,35 @@ TEAM_NAME_ALIASES = {
     "texas a&m": "texas am",
 }
 
+TEAM_NAME_ALIASES.update({
+    "ohio st": "ohio state",
+    "ohio st.": "ohio state",
+    "st john's": "st johns",
+    "st johns": "st johns",
+    "ca baptist": "cal baptist",
+    "north dakota st": "north dakota state",
+    "north dakota st.": "north dakota state",
+    "utah st": "utah state",
+    "utah st.": "utah state",
+    "mcneese": "mcneese",
+    "mcneese st": "mcneese",
+    "mcneese st.": "mcneese",
+    "queens (n c)": "queens",
+    "queens (n. c.)": "queens",
+    "queens nc": "queens",
+    "texas aandm": "texas am",
+    "texas a&m": "texas am",
+    "miami (ohio)": "miami ohio",
+    "wright st": "wright state",
+    "wright st.": "wright state",
+    "tennessee st": "tennessee state",
+    "tennessee st.": "tennessee state",
+    "iowa st": "iowa state",
+    "iowa st.": "iowa state",
+    "louisville": "louisville",
+    "south florida": "south florida",
+})
+
 
 def normalize_team_name(name):
     return (
