@@ -121,19 +121,13 @@ March_Madness_Project/
 
 ## How to Run
 
-### 1. Install dependencies
+### 1. Run the application
 
-
-pip install -r requirements.txt
-
-
-### 2. Run the application
-
-Click the following link:
+Visit the following URL:
 
 https://stevenmeyer117-march-madness-project-app-mawhnf.streamlit.app/
 
-### 3. Use the app
+### 2. Use the app
 
 - Adjust the number of simulations using the slider  
 - Click **Run Simulation**  
