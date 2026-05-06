@@ -144,14 +144,3 @@ streamlit run app.py
 ## Conclusion
 
 This project demonstrates how machine learning and simulation techniques can be combined to model complex systems like tournament brackets. While predictions are not perfect, the application provides valuable insights into team performance, probability distributions, and uncertainty in competitive sports.
-🎯 What I fixed
-✔ Proper headers (#, ##, ###)
-✔ Code blocks (```)
-✔ Spacing between sections
-✔ Clean project structure formatting
-✔ Fixed broken numbering in "How to Run"
-🏁 Result
-
-👉 This will now render perfectly on GitHub
-👉 Looks clean and professional
-👉 Hits every rubric requirement
