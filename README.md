@@ -47,7 +47,7 @@ This project combines two main techniques:
 
 ### 1. Machine Learning Model
 
-A classification model (Random Forest) is trained on historical data to estimate the probability that a team will win a game based on its statistical profile.
+A classification model (Linear Regression) is trained on historical data to estimate the probability that a team will win a game based on its statistical profile.
 
 ### 2. Monte Carlo Simulation
 
@@ -129,9 +129,9 @@ pip install -r requirements.txt
 
 ### 2. Run the application
 
+Click the following link:
 
-streamlit run app.py
-
+https://stevenmeyer117-march-madness-project-app-mawhnf.streamlit.app/
 
 ### 3. Use the app
 
